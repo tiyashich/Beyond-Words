@@ -75,6 +75,10 @@ except Exception as e:
 
 initialize_session()
 
+# Initialize session flag for triggering countdown state
+if "is_counting_down" not in st.session_state:
+    st.session_state.is_counting_down = False
+
 # -------------------------------------------------------------------
 # 3. BRAND HEADERS
 # -------------------------------------------------------------------
@@ -122,11 +126,13 @@ with st.container(border=True):
         if st.session_state.get("run_camera", False):
             if st.button("🛑 Stop Stream", use_container_width=True, key="stop_cam_btn", type="secondary"):
                 st.session_state.run_camera = False
+                st.session_state.is_counting_down = False
                 st.rerun()
         else:
             if st.button("🚀 Start Live Stream", use_container_width=True, key="launch_cam_btn", type="primary"):
                 st.session_state.run_camera = True
                 st.session_state.saved_prediction = None
+                st.session_state.is_counting_down = False
                 st.rerun()
 
 if "gesture_history" not in st.session_state:
@@ -152,36 +158,59 @@ with col1:
         st.markdown('<div class="panel"><h3 class="panel-title">LIVE VIEWFINDER</h3>', unsafe_allow_html=True)
         st.html('<div class="viewfinder-wrapper">')
         
-        countdown_banner = st.empty()
+        # Overlay banner slot rendered right above the live viewfinder
+        countdown_slot = st.empty()
         
         if not st.session_state.get("run_camera", False) and st.session_state.get("saved_prediction") is None:
             st.markdown('<div class="viewfinder">CAMERA FEED OFFLINE</div>', unsafe_allow_html=True)
             camera_file = None
         else:
+            # Framing Timer button for double-handed gesture preparation
+            if st.session_state.get("saved_prediction") is None and not st.session_state.get("is_counting_down", False):
+                if st.button("⏱️ Prepare Both Hands (3s Countdown)", use_container_width=True, type="primary", key="start_timer_btn"):
+                    st.session_state.is_counting_down = True
+                    st.rerun()
+
+            # Camera view remains continuously rendered
             camera_file = st.camera_input("Capture Hand Gesture", label_visibility="collapsed", disabled=not system_online)
 
         st.html('</div>')
         st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# 6. DIAGNOSTICS PIPELINE EXECUTION
+# 6. COUNTDOWN TIMER & DIAGNOSTICS EXECUTION
 # -------------------------------------------------------------------
-# Execute when an image exists in the browser camera buffer but hasn't been processed yet
-if camera_file is not None and st.session_state.get("saved_prediction") is None:
-    # 3-Second Overlay Animation
+# Execute real-time 3-second countdown while camera review stays active
+if st.session_state.get("is_counting_down", False) and camera_file is None:
     for seconds_left in range(3, 0, -1):
-        countdown_banner.markdown(
-            f'<div class="floating-countdown-overlay">⏱️ Processing in {seconds_left}s</div>', 
+        countdown_slot.markdown(
+            f'<div style="background-color: #ff4b4b; color: #ffffff; padding: 12px 16px; border-radius: 8px; '
+            f'text-align: center; font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; '
+            f'box-shadow: 0px 4px 12px rgba(255, 75, 75, 0.3); border: 2px solid #ffffff;">'
+            f'🖐️ Check Framing! Capture in {seconds_left}s...</div>',
             unsafe_allow_html=True
         )
         time.sleep(1.0)
     
-    countdown_banner.markdown(
-        '<div class="floating-countdown-overlay">Running Diagnostics Pipeline...</div>', 
+    countdown_slot.markdown(
+        '<div style="background-color: #28a745; color: #ffffff; padding: 12px 16px; border-radius: 8px; '
+        'text-align: center; font-size: 1.2rem; font-weight: 700; margin-bottom: 12px; '
+        'box-shadow: 0px 4px 12px rgba(40, 167, 69, 0.3); border: 2px solid #ffffff;">'
+        '📸 READY! Click "Take Photo" below now!</div>',
+        unsafe_allow_html=True
+    )
+    st.session_state.is_counting_down = False
+
+# Process image buffer upon photo snapshot
+if camera_file is not None and st.session_state.get("saved_prediction") is None:
+    st.session_state.is_counting_down = False
+    
+    countdown_slot.markdown(
+        '<div style="background-color: #0096ff; color: white; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 12px;">'
+        '⚡ Processing Gesture through Neural Pipeline...</div>', 
         unsafe_allow_html=True
     )
 
-    # Process image buffer
     file_bytes = np.asarray(bytearray(camera_file.read()), dtype=np.uint8)
     frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
@@ -222,7 +251,7 @@ if camera_file is not None and st.session_state.get("saved_prediction") is None:
                 }
                 st.session_state.saved_hand_crop = explanation_map
 
-    countdown_banner.empty()
+    countdown_slot.empty()
     st.rerun()
 
 # -------------------------------------------------------------------
@@ -342,6 +371,7 @@ with col2:
                     st.session_state.saved_full_view = None
                     st.session_state.saved_hand_crop = None
                     st.session_state.saved_prediction = None
+                    st.session_state.is_counting_down = False
                     st.session_state.run_camera = True
                     st.rerun()
                 
