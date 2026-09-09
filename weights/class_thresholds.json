@@ -1,0 +1,296 @@
+{
+  "0": {
+    "mean_similarity": 0.9569680094718933,
+    "std_similarity": 0.03196084126830101,
+    "threshold": 0.8930463269352913,
+    "num_samples": 239
+  },
+  "1": {
+    "mean_similarity": 0.95148766040802,
+    "std_similarity": 0.03148747980594635,
+    "threshold": 0.8885127007961273,
+    "num_samples": 259
+  },
+  "10": {
+    "mean_similarity": 0.946215808391571,
+    "std_similarity": 0.03030562214553356,
+    "threshold": 0.8856045641005039,
+    "num_samples": 240
+  },
+  "11": {
+    "mean_similarity": 0.9346773624420166,
+    "std_similarity": 0.035015977919101715,
+    "threshold": 0.8646454066038132,
+    "num_samples": 240
+  },
+  "12": {
+    "mean_similarity": 0.9200103282928467,
+    "std_similarity": 0.04255293682217598,
+    "threshold": 0.8349044546484947,
+    "num_samples": 240
+  },
+  "13": {
+    "mean_similarity": 0.9571254253387451,
+    "std_similarity": 0.04200655221939087,
+    "threshold": 0.8731123208999634,
+    "num_samples": 240
+  },
+  "14": {
+    "mean_similarity": 0.9475929737091064,
+    "std_similarity": 0.031042281538248062,
+    "threshold": 0.8855084106326103,
+    "num_samples": 240
+  },
+  "15": {
+    "mean_similarity": 0.9530178904533386,
+    "std_similarity": 0.03507119044661522,
+    "threshold": 0.8828755095601082,
+    "num_samples": 240
+  },
+  "16": {
+    "mean_similarity": 0.9269426465034485,
+    "std_similarity": 0.03361770138144493,
+    "threshold": 0.8597072437405586,
+    "num_samples": 240
+  },
+  "17": {
+    "mean_similarity": 0.9485847353935242,
+    "std_similarity": 0.031531259417533875,
+    "threshold": 0.8855222165584564,
+    "num_samples": 240
+  },
+  "18": {
+    "mean_similarity": 0.9230104088783264,
+    "std_similarity": 0.04932228475809097,
+    "threshold": 0.8243658393621445,
+    "num_samples": 240
+  },
+  "19": {
+    "mean_similarity": 0.9356464743614197,
+    "std_similarity": 0.03600217401981354,
+    "threshold": 0.8636421263217926,
+    "num_samples": 240
+  },
+  "2": {
+    "mean_similarity": 0.9606102108955383,
+    "std_similarity": 0.033781424164772034,
+    "threshold": 0.8930473625659943,
+    "num_samples": 236
+  },
+  "20": {
+    "mean_similarity": 0.9420127868652344,
+    "std_similarity": 0.061567436903715134,
+    "threshold": 0.8188779130578041,
+    "num_samples": 240
+  },
+  "21": {
+    "mean_similarity": 0.9394254088401794,
+    "std_similarity": 0.040380388498306274,
+    "threshold": 0.8586646318435669,
+    "num_samples": 240
+  },
+  "22": {
+    "mean_similarity": 0.937301516532898,
+    "std_similarity": 0.043884940445423126,
+    "threshold": 0.8495316356420517,
+    "num_samples": 242
+  },
+  "23": {
+    "mean_similarity": 0.9583235383033752,
+    "std_similarity": 0.027300624176859856,
+    "threshold": 0.9037222899496555,
+    "num_samples": 238
+  },
+  "24": {
+    "mean_similarity": 0.9365177750587463,
+    "std_similarity": 0.032714031636714935,
+    "threshold": 0.8710897117853165,
+    "num_samples": 240
+  },
+  "25": {
+    "mean_similarity": 0.937158465385437,
+    "std_similarity": 0.025539442896842957,
+    "threshold": 0.8860795795917511,
+    "num_samples": 240
+  },
+  "26": {
+    "mean_similarity": 0.9526263475418091,
+    "std_similarity": 0.0368364043533802,
+    "threshold": 0.8789535388350487,
+    "num_samples": 240
+  },
+  "27": {
+    "mean_similarity": 0.9516023993492126,
+    "std_similarity": 0.022413861006498337,
+    "threshold": 0.906774677336216,
+    "num_samples": 240
+  },
+  "28": {
+    "mean_similarity": 0.9565101861953735,
+    "std_similarity": 0.026619236916303635,
+    "threshold": 0.9032717123627663,
+    "num_samples": 240
+  },
+  "29": {
+    "mean_similarity": 0.940799355506897,
+    "std_similarity": 0.048806071281433105,
+    "threshold": 0.8431872129440308,
+    "num_samples": 240
+  },
+  "3": {
+    "mean_similarity": 0.9587458968162537,
+    "std_similarity": 0.03620871156454086,
+    "threshold": 0.8863284736871719,
+    "num_samples": 240
+  },
+  "30": {
+    "mean_similarity": 0.9652242660522461,
+    "std_similarity": 0.01896635629236698,
+    "threshold": 0.9272915534675121,
+    "num_samples": 240
+  },
+  "31": {
+    "mean_similarity": 0.945172905921936,
+    "std_similarity": 0.024445679038763046,
+    "threshold": 0.8962815478444099,
+    "num_samples": 240
+  },
+  "32": {
+    "mean_similarity": 0.9627940654754639,
+    "std_similarity": 0.021329719573259354,
+    "threshold": 0.9201346263289452,
+    "num_samples": 240
+  },
+  "33": {
+    "mean_similarity": 0.943144679069519,
+    "std_similarity": 0.03093736246228218,
+    "threshold": 0.8812699541449547,
+    "num_samples": 239
+  },
+  "34": {
+    "mean_similarity": 0.9370760321617126,
+    "std_similarity": 0.032470863312482834,
+    "threshold": 0.872134305536747,
+    "num_samples": 240
+  },
+  "35": {
+    "mean_similarity": 0.9693337082862854,
+    "std_similarity": 0.016092993319034576,
+    "threshold": 0.9371477216482162,
+    "num_samples": 240
+  },
+  "36": {
+    "mean_similarity": 0.9323426485061646,
+    "std_similarity": 0.032857589423656464,
+    "threshold": 0.8666274696588516,
+    "num_samples": 240
+  },
+  "37": {
+    "mean_similarity": 0.9500049352645874,
+    "std_similarity": 0.020026879385113716,
+    "threshold": 0.90995117649436,
+    "num_samples": 240
+  },
+  "38": {
+    "mean_similarity": 0.9604824781417847,
+    "std_similarity": 0.02504553459584713,
+    "threshold": 0.9103914089500904,
+    "num_samples": 240
+  },
+  "39": {
+    "mean_similarity": 0.962573230266571,
+    "std_similarity": 0.02488822303712368,
+    "threshold": 0.9127967841923237,
+    "num_samples": 240
+  },
+  "4": {
+    "mean_similarity": 0.9602087736129761,
+    "std_similarity": 0.03146112710237503,
+    "threshold": 0.897286519408226,
+    "num_samples": 240
+  },
+  "40": {
+    "mean_similarity": 0.9578034281730652,
+    "std_similarity": 0.027227843180298805,
+    "threshold": 0.9033477418124676,
+    "num_samples": 240
+  },
+  "41": {
+    "mean_similarity": 0.9593636393547058,
+    "std_similarity": 0.02704511769115925,
+    "threshold": 0.9052734039723873,
+    "num_samples": 238
+  },
+  "42": {
+    "mean_similarity": 0.953158974647522,
+    "std_similarity": 0.02783632092177868,
+    "threshold": 0.8974863328039646,
+    "num_samples": 240
+  },
+  "43": {
+    "mean_similarity": 0.9521998167037964,
+    "std_similarity": 0.02280200459063053,
+    "threshold": 0.9065958075225353,
+    "num_samples": 240
+  },
+  "44": {
+    "mean_similarity": 0.9555851221084595,
+    "std_similarity": 0.021985970437526703,
+    "threshold": 0.9116131812334061,
+    "num_samples": 240
+  },
+  "45": {
+    "mean_similarity": 0.9391679763793945,
+    "std_similarity": 0.0315307155251503,
+    "threshold": 0.8761065453290939,
+    "num_samples": 242
+  },
+  "46": {
+    "mean_similarity": 0.9551067352294922,
+    "std_similarity": 0.027069929987192154,
+    "threshold": 0.9009668752551079,
+    "num_samples": 240
+  },
+  "47": {
+    "mean_similarity": 0.9279903173446655,
+    "std_similarity": 0.039689332246780396,
+    "threshold": 0.8486116528511047,
+    "num_samples": 240
+  },
+  "48": {
+    "mean_similarity": 0.9490994215011597,
+    "std_similarity": 0.026868464425206184,
+    "threshold": 0.8953624926507473,
+    "num_samples": 240
+  },
+  "5": {
+    "mean_similarity": 0.9666066765785217,
+    "std_similarity": 0.021483246237039566,
+    "threshold": 0.9236401841044426,
+    "num_samples": 240
+  },
+  "6": {
+    "mean_similarity": 0.9389911890029907,
+    "std_similarity": 0.03159293159842491,
+    "threshold": 0.8758053258061409,
+    "num_samples": 240
+  },
+  "7": {
+    "mean_similarity": 0.9346727728843689,
+    "std_similarity": 0.03558449447154999,
+    "threshold": 0.8635037839412689,
+    "num_samples": 240
+  },
+  "8": {
+    "mean_similarity": 0.9432923793792725,
+    "std_similarity": 0.04808909818530083,
+    "threshold": 0.8471141830086708,
+    "num_samples": 241
+  },
+  "9": {
+    "mean_similarity": 0.9509702920913696,
+    "std_similarity": 0.035915523767471313,
+    "threshold": 0.879139244556427,
+    "num_samples": 240
+  }
+}
