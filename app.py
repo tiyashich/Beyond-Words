@@ -1,16 +1,17 @@
 import os
 import sys
-import time
 import cv2
 import numpy as np
 import streamlit as st
+from PIL import Image
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.predictor import predict_crop
 from ui.session import initialize_session
-from utils.constants import(
-IMG_RESOLUTION,
-FALLBACK_CONFIDENCE_THRESHOLD,
+from utils.constants import (
+    IMG_RESOLUTION,
+    FALLBACK_CONFIDENCE_THRESHOLD,
     LUMINANCE_THRESHOLD,
     MODEL_PATH,
     CENTROIDS_PATH,
@@ -47,94 +48,76 @@ try:
 except Exception as e:
     st.error(f"System Offline - Pipeline Initialization Failure: {e}")
     system_online = False
+
 initialize_session()
 
 # 2. BRAND HEADERS
 st.title("Beyond Words: A Sign Language Recognition System")
 st.html('<span class="subtitle-text" style="font-style: italic !important;">Decoding Signs, Empowering Lives</span>')
 
-# 3. CONTROL MATRIX PANEL
-with st.container(border=True):
-    st.html('<div class="control-matrix-marker"></div>')
-    col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1.2, 1.0, 0.8], gap="medium") 
-    with col_ctrl1:
-        st.html("""
-        <div class="section-label">
-            <span>📹</span> Video Source
-        </div>
-        """)
-        camera_choice = st.selectbox(
-            label="Video Device Source",
-            options=[
-                "Integrated Device Camera (Built-in Webcam)",
-                "Iriun Virtual Webcam / External USB Camera"
-            ],
-            label_visibility="collapsed"
-        )
-    with col_ctrl2:
-        st.html("""
-        <div class="section-label">
-            <span>🔍</span> Optical / Digital Zoom
-        </div>
-        """)
-        zoom_factor = st.slider(
-            label="Camera Zoom Scaler",
-            min_value=1.0,
-            max_value=3.0,
-            value=1.0,
-            step=0.1,
-            format="%.1fx",
-            label_visibility="collapsed",
-            key="zoom_scaler_slider"
-        )
-    with col_ctrl3:
-        st.html("""<div style="margin-top: 25px;"></div>""")
-        if st.session_state.run_camera:
-            if st.button("🛑 Stop Stream", width='stretch', key="stop_cam_btn", type="secondary"):
-                st.session_state.run_camera = False
-                st.rerun()
-        else:
-            if st.button("🚀 Start Live Stream", width='stretch', key="launch_cam_btn", type="primary"):
-                st.session_state.run_camera = True
-                st.rerun()
-camera_index = 1 if "Iriun" in camera_choice or "External" in camera_choice else 0
 if "gesture_history" not in st.session_state:
     st.session_state.gesture_history = []
-def apply_digital_zoom(frame_bgr, zoom):
-    """Crops and rescales frame centered on video coordinates based on zoom factor."""
-    if zoom <= 1.0:
-        return frame_bgr
-    h, w, _ = frame_bgr.shape
-    new_h, new_w = int(h / zoom), int(w / zoom)
-    y1 = (h - new_h) // 2
-    x1 = (w - new_w) // 2
-    cropped_center = frame_bgr[y1 : y1 + new_h, x1 : x1 + new_w]
-    return cv2.resize(cropped_center, (w, h), interpolation=cv2.INTER_LINEAR)
 
-# 4. MAIN LIVE VIEWPORT WORKSPACE
+# 3. MAIN WORKSPACE
 col1, col2 = st.columns([1.35, 0.65], gap="large")
+
 with col1:
     with st.container(key="viewfinder_panel"):
         st.markdown('<div class="panel"><h3 class="panel-title">LIVE VIEWFINDER</h3>', unsafe_allow_html=True)
-        # Relative Wrapper Container for Floating Overlay Placement
-        st.html('<div class="viewfinder-wrapper">')
-        countdown_banner = st.empty()
-        viewfinder = st.empty()
-        st.html('</div>')
-        if not st.session_state.get("run_camera", False) and st.session_state.get("saved_prediction") is None:
-            viewfinder.markdown('<div class="viewfinder">CAMERA FEED OFFLINE</div>', unsafe_allow_html=True)
-        st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-        if st.session_state.get("saved_prediction") is None:
-            shutter_btn = st.button(
-                "📸 CAPTURE HAND GESTURE", 
-                type="primary", 
-                disabled=not (system_online and st.session_state.get("run_camera", False)), 
-                width='stretch',
-                key="shutter_action_trigger"
-            )
-        else:
-            shutter_btn = False
+        
+        # Native Browser Camera Stream
+        camera_file = st.camera_input(
+            "Take a picture of your Bengali hand gesture", 
+            key="webcam_capture",
+            disabled=not system_online
+        )
         st.markdown('</div>', unsafe_allow_html=True)
+
+# Process Captured Frame automatically when taken
+if camera_file is not None and system_online:
+    # Convert uploaded image byte stream to OpenCV BGR format
+    file_bytes = np.asarray(bytearray(camera_file.read()), dtype=np.uint8)
+    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+    if frame is not None:
+        full_frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        st.session_state.saved_full_view = full_frame_rgb
+        
+        mean_luminance = float(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).mean())
+        
+        if mean_luminance < LUMINANCE_THRESHOLD:
+            st.session_state.saved_prediction = {
+                "low_light": True,
+                "luminance": mean_luminance,
+            }
+            st.session_state.saved_hand_crop = None
+        else:
+            yolo_results = detector(frame, conf=0.40, verbose=False)[0]
+            if len(yolo_results.boxes) == 0:
+                st.session_state.saved_prediction = {
+                    "no_hand": True,
+                }
+                st.session_state.saved_hand_crop = None
+            else:
+                best_box = yolo_results.boxes[0].xyxy[0].cpu().numpy().astype(int)
+                x1, y1, x2, y2 = best_box
+                h_orig, w_orig = frame.shape[:2]
+                crop_bgr = frame[max(0, y1):min(h_orig, y2), max(0, x1):min(w_orig, x2)]
+                
+                bengali_char, best_class_name, score, threshold, top3, explanation_map = predict_crop(
+                    crop_bgr, feature_extractor, backbone_grad_model, centroids, class_names, class_thresholds
+                )
+                top3_formatted = [(char, f"{sim * 100:.1f}%") for char, sim in top3]
+                
+                st.session_state.saved_prediction = {
+                    "char": bengali_char, 
+                    "class_id": best_class_name,
+                    "score": score, 
+                    "threshold": threshold, 
+                    "top3": top3_formatted
+                }
+                st.session_state.saved_hand_crop = explanation_map
+
 with col2:
     with st.container(key="diagnostics_panel"):
         st.markdown('<div class="panel diagnostics-panel"><h3 class="panel-title">AI DIAGNOSTICS & RESULTS</h3>', unsafe_allow_html=True)     
@@ -153,9 +136,9 @@ with col2:
             res = st.session_state.saved_prediction
             
             if st.session_state.get("saved_full_view") is not None:
-                full_output_view.image(st.session_state.saved_full_view, caption="Captured Frame", width='stretch')
+                full_output_view.image(st.session_state.saved_full_view, caption="Captured Frame", use_container_width=True)
             if st.session_state.get("saved_hand_crop") is not None:
-                crop_output_view.image(st.session_state.saved_hand_crop, caption="Grad-CAM Focus", width='stretch')
+                crop_output_view.image(st.session_state.saved_hand_crop, caption="Grad-CAM Focus", use_container_width=True)
 
             with metrics_slot:
                 if res.get("low_light"):
@@ -245,97 +228,10 @@ with col2:
             
             with reset_slot:
                 st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-                if st.button("🔄 Test Another Sign", width='stretch', key="AnotherSignBtn", type="secondary"):
+                if st.button("🔄 Clear & Snap Next Sign", use_container_width=True, key="AnotherSignBtn", type="secondary"):
                     st.session_state.saved_full_view = None
                     st.session_state.saved_hand_crop = None
                     st.session_state.saved_prediction = None
-                    st.session_state.run_camera = True
                     st.rerun()
                 
         st.markdown('</div>', unsafe_allow_html=True)
-
-# =====================================================================
-# 5. ASYNC STREAM & PROCESSING EXECUTION LOOP
-# =====================================================================
-if system_online and st.session_state.get("run_camera", False):
-    backend = cv2.CAP_DSHOW if sys.platform.startswith("win") else cv2.CAP_ANY
-    cap = cv2.VideoCapture(camera_index, backend)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
-    
-    if cap.isOpened():
-        if shutter_btn and not st.session_state.get("active_countdown", False):
-            st.session_state.countdown_start = time.time()
-            st.session_state.active_countdown = True
-
-        while st.session_state.get("run_camera", False):
-            ret, frame = cap.read()
-            if not ret:
-                break
-                
-            frame = apply_digital_zoom(frame, zoom_factor)
-            live_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            if st.session_state.get("saved_prediction") is None:
-                viewfinder.image(live_rgb, width='stretch')
-            
-            # --- FLOATING OVERLAY COUNTDOWN & PROCESSING LOGIC ---
-            if st.session_state.get("active_countdown", False):
-                elapsed = time.time() - st.session_state.get("countdown_start", time.time())
-                time_remaining = 3 - int(elapsed)
-                if time_remaining > 0:
-                    countdown_banner.markdown(
-                        f'<div class="floating-countdown-overlay">⏱️ Capturing in {time_remaining}s</div>', 
-                        unsafe_allow_html=True
-                    )
-                else:
-                    countdown_banner.markdown(
-                        '<div class="floating-countdown-overlay">Running Diagnostics Pipeline...</div>', 
-                        unsafe_allow_html=True
-                    )
-                    # Flush stale camera buffer frames for a fresh snap
-                    for _ in range(15): 
-                        cap.grab()
-                    ret, frame = cap.read()                
-                    if ret and frame is not None:
-                        frame = apply_digital_zoom(frame, zoom_factor)
-                        full_frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        st.session_state.saved_full_view = full_frame_rgb
-                        mean_luminance = float(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).mean())
-                        if mean_luminance < LUMINANCE_THRESHOLD:
-                            st.session_state.saved_prediction = {
-                                "low_light": True,
-                                "luminance": mean_luminance,
-                            }
-                        else:
-                            yolo_results = detector(frame, conf=0.40, verbose=False)[0]
-                            if len(yolo_results.boxes) == 0:
-                                st.session_state.saved_prediction = {
-                                    "no_hand": True,
-                                }
-                            else:
-                                best_box = yolo_results.boxes[0].xyxy[0].cpu().numpy().astype(int)
-                                x1, y1, x2, y2 = best_box
-                                h_orig, w_orig = frame.shape[:2]
-                                crop_bgr = frame[max(0, y1):min(h_orig, y2), max(0, x1):min(w_orig, x2)]
-                                bengali_char, best_class_name, score, threshold, top3, explanation_map = predict_crop(
-                                    crop_bgr, feature_extractor, backbone_grad_model, centroids, class_names, class_thresholds
-                                )
-                                top3_formatted = [(char, f"{sim * 100:.1f}%") for char, sim in top3]
-                                st.session_state.saved_prediction = {
-                                    "char": bengali_char, 
-                                    "class_id": best_class_name,
-                                    "score": score, 
-                                    "threshold": threshold, 
-                                    "top3": top3_formatted
-                                }
-                                st.session_state.saved_hand_crop = explanation_map
-                    countdown_banner.empty()
-                    st.session_state.active_countdown = False
-                    st.session_state.run_camera = False
-                    break
-            time.sleep(0.01)
-        if cap.isOpened(): 
-            cap.release()
-        st.rerun()
