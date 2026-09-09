@@ -161,28 +161,17 @@ with col1:
             camera_file = st.camera_input("Capture Hand Gesture", label_visibility="collapsed", disabled=not system_online)
 
         st.html('</div>')
-        st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-
-        if st.session_state.get("saved_prediction") is None:
-            shutter_btn = st.button(
-                "📸 CAPTURE HAND GESTURE", 
-                type="primary", 
-                disabled=not (system_online and camera_file is not None), 
-                use_container_width=True,
-                key="shutter_action_trigger"
-            )
-        else:
-            shutter_btn = False
         st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# 6. DIAGNOSTICS & COUNTDOWN PROCESSOR
+# 6. DIAGNOSTICS PIPELINE EXECUTION
 # -------------------------------------------------------------------
-if shutter_btn and camera_file is not None:
-    # 3-Second Countdown Simulation Overlay
+# Execute when an image exists in the browser camera buffer but hasn't been processed yet
+if camera_file is not None and st.session_state.get("saved_prediction") is None:
+    # 3-Second Overlay Animation
     for seconds_left in range(3, 0, -1):
         countdown_banner.markdown(
-            f'<div class="floating-countdown-overlay">⏱️ Capturing in {seconds_left}s</div>', 
+            f'<div class="floating-countdown-overlay">⏱️ Processing in {seconds_left}s</div>', 
             unsafe_allow_html=True
         )
         time.sleep(1.0)
@@ -192,7 +181,7 @@ if shutter_btn and camera_file is not None:
         unsafe_allow_html=True
     )
 
-    # Process photo from browser buffer safely
+    # Process image buffer
     file_bytes = np.asarray(bytearray(camera_file.read()), dtype=np.uint8)
     frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
@@ -208,7 +197,6 @@ if shutter_btn and camera_file is not None:
                 "luminance": mean_luminance,
             }
         else:
-            # Force CPU execution inside YOLO detector to avoid CUDA driver checks
             yolo_results = detector(frame, conf=0.40, device="cpu", verbose=False)[0]
             if len(yolo_results.boxes) == 0:
                 st.session_state.saved_prediction = {
