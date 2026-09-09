@@ -1,6 +1,14 @@
 import os
 import sys
+
+# Disable CUDA/GPU initialization completely to prevent C++ Segmentation Faults
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
 import cv2
+import time
 import numpy as np
 import streamlit as st
 from PIL import Image
@@ -55,49 +63,132 @@ initialize_session()
 st.title("Beyond Words: A Sign Language Recognition System")
 st.html('<span class="subtitle-text" style="font-style: italic !important;">Decoding Signs, Empowering Lives</span>')
 
+# 3. CONTROL MATRIX PANEL
+with st.container(border=True):
+    st.html('<div class="control-matrix-marker"></div>')
+    col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1.2, 1.0, 0.8], gap="medium") 
+    with col_ctrl1:
+        st.html("""
+        <div class="section-label">
+            <span>📹</span> Video Source
+        </div>
+        """)
+        camera_choice = st.selectbox(
+            label="Video Device Source",
+            options=[
+                "Integrated Device Camera (Built-in Webcam)",
+                "Iriun Virtual Webcam / External USB Camera"
+            ],
+            label_visibility="collapsed"
+        )
+    with col_ctrl2:
+        st.html("""
+        <div class="section-label">
+            <span>🔍</span> Optical / Digital Zoom
+        </div>
+        """)
+        zoom_factor = st.slider(
+            label="Camera Zoom Scaler",
+            min_value=1.0,
+            max_value=3.0,
+            value=1.0,
+            step=0.1,
+            format="%.1fx",
+            label_visibility="collapsed",
+            key="zoom_scaler_slider"
+        )
+    with col_ctrl3:
+        st.html("""<div style="margin-top: 25px;"></div>""")
+        if st.session_state.get("run_camera", False):
+            if st.button("🛑 Stop Stream", width='stretch', key="stop_cam_btn", type="secondary"):
+                st.session_state.run_camera = False
+                st.rerun()
+        else:
+            if st.button("🚀 Start Live Stream", width='stretch', key="launch_cam_btn", type="primary"):
+                st.session_state.run_camera = True
+                st.session_state.saved_prediction = None
+                st.rerun()
+
 if "gesture_history" not in st.session_state:
     st.session_state.gesture_history = []
 
-# 3. MAIN WORKSPACE
-col1, col2 = st.columns([1.35, 0.65], gap="large")
+def apply_digital_zoom(frame_bgr, zoom):
+    """Crops and rescales frame centered on video coordinates based on zoom factor."""
+    if zoom <= 1.0:
+        return frame_bgr
+    h, w, _ = frame_bgr.shape
+    new_h, new_w = int(h / zoom), int(w / zoom)
+    y1 = (h - new_h) // 2
+    x1 = (w - new_w) // 2
+    cropped_center = frame_bgr[y1 : y1 + new_h, x1 : x1 + new_w]
+    return cv2.resize(cropped_center, (w, h), interpolation=cv2.INTER_LINEAR)
 
+# 4. MAIN LIVE VIEWPORT WORKSPACE
+col1, col2 = st.columns([1.35, 0.65], gap="large")
 with col1:
     with st.container(key="viewfinder_panel"):
         st.markdown('<div class="panel"><h3 class="panel-title">LIVE VIEWFINDER</h3>', unsafe_allow_html=True)
+        st.html('<div class="viewfinder-wrapper">')
         
-        # Native Browser Camera Stream
-        camera_file = st.camera_input(
-            "Take a picture of your Bengali hand gesture", 
-            key="webcam_capture",
-            disabled=not system_online
-        )
+        countdown_banner = st.empty()
+        
+        if not st.session_state.get("run_camera", False) and st.session_state.get("saved_prediction") is None:
+            st.markdown('<div class="viewfinder">CAMERA FEED OFFLINE</div>', unsafe_allow_html=True)
+            camera_file = None
+        else:
+            camera_file = st.camera_input("Capture Hand Gesture", label_visibility="collapsed", disabled=not system_online)
+
+        st.html('</div>')
+        st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+
+        if st.session_state.get("saved_prediction") is None:
+            shutter_btn = st.button(
+                "📸 CAPTURE HAND GESTURE", 
+                type="primary", 
+                disabled=not (system_online and camera_file is not None), 
+                width='stretch',
+                key="shutter_action_trigger"
+            )
+        else:
+            shutter_btn = False
         st.markdown('</div>', unsafe_allow_html=True)
 
-# Process Captured Frame automatically when taken
-if camera_file is not None and system_online:
-    # Convert uploaded image byte stream to OpenCV BGR format
+# 5. DIAGNOSTICS & COUNTDOWN PROCESSOR
+if shutter_btn and camera_file is not None:
+    # 3-Second Countdown Simulation Overlay
+    for seconds_left in range(3, 0, -1):
+        countdown_banner.markdown(
+            f'<div class="floating-countdown-overlay">⏱️ Capturing in {seconds_left}s</div>', 
+            unsafe_allow_html=True
+        )
+        time.sleep(1.0)
+    
+    countdown_banner.markdown(
+        '<div class="floating-countdown-overlay">Running Diagnostics Pipeline...</div>', 
+        unsafe_allow_html=True
+    )
+
+    # Process photo from browser buffer safely
     file_bytes = np.asarray(bytearray(camera_file.read()), dtype=np.uint8)
     frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
     if frame is not None:
+        frame = apply_digital_zoom(frame, zoom_factor)
         full_frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         st.session_state.saved_full_view = full_frame_rgb
         
         mean_luminance = float(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).mean())
-        
         if mean_luminance < LUMINANCE_THRESHOLD:
             st.session_state.saved_prediction = {
                 "low_light": True,
                 "luminance": mean_luminance,
             }
-            st.session_state.saved_hand_crop = None
         else:
             yolo_results = detector(frame, conf=0.40, verbose=False)[0]
             if len(yolo_results.boxes) == 0:
                 st.session_state.saved_prediction = {
                     "no_hand": True,
                 }
-                st.session_state.saved_hand_crop = None
             else:
                 best_box = yolo_results.boxes[0].xyxy[0].cpu().numpy().astype(int)
                 x1, y1, x2, y2 = best_box
@@ -117,6 +208,9 @@ if camera_file is not None and system_online:
                     "top3": top3_formatted
                 }
                 st.session_state.saved_hand_crop = explanation_map
+
+    countdown_banner.empty()
+    st.rerun()
 
 with col2:
     with st.container(key="diagnostics_panel"):
@@ -228,10 +322,11 @@ with col2:
             
             with reset_slot:
                 st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-                if st.button("🔄 Clear & Snap Next Sign", use_container_width=True, key="AnotherSignBtn", type="secondary"):
+                if st.button("🔄 Test Another Sign", use_container_width=True, key="AnotherSignBtn", type="secondary"):
                     st.session_state.saved_full_view = None
                     st.session_state.saved_hand_crop = None
                     st.session_state.saved_prediction = None
+                    st.session_state.run_camera = True
                     st.rerun()
                 
         st.markdown('</div>', unsafe_allow_html=True)
