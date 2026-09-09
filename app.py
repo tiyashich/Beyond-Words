@@ -1,11 +1,25 @@
 import os
 import sys
 
-# Disable CUDA/GPU initialization completely to prevent C++ Segmentation Faults
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# -------------------------------------------------------------------
+# 1. ENVIRONMENT VARIABLES (MUST BE BEFORE ANY THIRD-PARTY IMPORTS)
+# -------------------------------------------------------------------
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["USE_CUDA"] = "0"
+os.environ["FORCE_CPU"] = "1"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+# Force PyTorch to disable CUDA initialization checks entirely
+try:
+    import torch
+    torch.cuda.is_available = lambda: False
+except ImportError:
+    pass
 
 import cv2
 import time
@@ -32,7 +46,9 @@ from utils.image_utils import apply_clahe_tf, preprocess_cropped_image
 from models.gradcam import generate_gradcam
 from ui.styles import custom_css
 
-# 1. PAGE SETUP & STRUCTURAL CSS INJECTION
+# -------------------------------------------------------------------
+# 2. PAGE SETUP & STRUCTURAL CSS INJECTION
+# -------------------------------------------------------------------
 st.set_page_config(layout="wide", page_title="Beyond Words | BDSL49")
 st.html(custom_css)
 
@@ -59,11 +75,15 @@ except Exception as e:
 
 initialize_session()
 
-# 2. BRAND HEADERS
+# -------------------------------------------------------------------
+# 3. BRAND HEADERS
+# -------------------------------------------------------------------
 st.title("Beyond Words: A Sign Language Recognition System")
 st.html('<span class="subtitle-text" style="font-style: italic !important;">Decoding Signs, Empowering Lives</span>')
 
-# 3. CONTROL MATRIX PANEL
+# -------------------------------------------------------------------
+# 4. CONTROL MATRIX PANEL
+# -------------------------------------------------------------------
 with st.container(border=True):
     st.html('<div class="control-matrix-marker"></div>')
     col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1.2, 1.0, 0.8], gap="medium") 
@@ -100,11 +120,11 @@ with st.container(border=True):
     with col_ctrl3:
         st.html("""<div style="margin-top: 25px;"></div>""")
         if st.session_state.get("run_camera", False):
-            if st.button("🛑 Stop Stream", width='stretch', key="stop_cam_btn", type="secondary"):
+            if st.button("🛑 Stop Stream", use_container_width=True, key="stop_cam_btn", type="secondary"):
                 st.session_state.run_camera = False
                 st.rerun()
         else:
-            if st.button("🚀 Start Live Stream", width='stretch', key="launch_cam_btn", type="primary"):
+            if st.button("🚀 Start Live Stream", use_container_width=True, key="launch_cam_btn", type="primary"):
                 st.session_state.run_camera = True
                 st.session_state.saved_prediction = None
                 st.rerun()
@@ -123,7 +143,9 @@ def apply_digital_zoom(frame_bgr, zoom):
     cropped_center = frame_bgr[y1 : y1 + new_h, x1 : x1 + new_w]
     return cv2.resize(cropped_center, (w, h), interpolation=cv2.INTER_LINEAR)
 
-# 4. MAIN LIVE VIEWPORT WORKSPACE
+# -------------------------------------------------------------------
+# 5. MAIN LIVE VIEWPORT WORKSPACE
+# -------------------------------------------------------------------
 col1, col2 = st.columns([1.35, 0.65], gap="large")
 with col1:
     with st.container(key="viewfinder_panel"):
@@ -146,14 +168,16 @@ with col1:
                 "📸 CAPTURE HAND GESTURE", 
                 type="primary", 
                 disabled=not (system_online and camera_file is not None), 
-                width='stretch',
+                use_container_width=True,
                 key="shutter_action_trigger"
             )
         else:
             shutter_btn = False
         st.markdown('</div>', unsafe_allow_html=True)
 
-# 5. DIAGNOSTICS & COUNTDOWN PROCESSOR
+# -------------------------------------------------------------------
+# 6. DIAGNOSTICS & COUNTDOWN PROCESSOR
+# -------------------------------------------------------------------
 if shutter_btn and camera_file is not None:
     # 3-Second Countdown Simulation Overlay
     for seconds_left in range(3, 0, -1):
@@ -184,7 +208,8 @@ if shutter_btn and camera_file is not None:
                 "luminance": mean_luminance,
             }
         else:
-            yolo_results = detector(frame, conf=0.40, verbose=False)[0]
+            # Force CPU execution inside YOLO detector to avoid CUDA driver checks
+            yolo_results = detector(frame, conf=0.40, device="cpu", verbose=False)[0]
             if len(yolo_results.boxes) == 0:
                 st.session_state.saved_prediction = {
                     "no_hand": True,
@@ -212,6 +237,9 @@ if shutter_btn and camera_file is not None:
     countdown_banner.empty()
     st.rerun()
 
+# -------------------------------------------------------------------
+# 7. DIAGNOSTICS DISPLAY PANEL
+# -------------------------------------------------------------------
 with col2:
     with st.container(key="diagnostics_panel"):
         st.markdown('<div class="panel diagnostics-panel"><h3 class="panel-title">AI DIAGNOSTICS & RESULTS</h3>', unsafe_allow_html=True)     

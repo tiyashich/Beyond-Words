@@ -158,9 +158,10 @@ h1 {
 }
 
 /* ============================================================
-   BUTTONS
+   BUTTONS & CAMERA INPUT CUSTOMIZATION
    ============================================================ */
 
+/* Standard Streamlit Buttons */
 .stButton > button {
     border-radius: 9px !important;
     font-size: 0.9rem !important;
@@ -194,8 +195,7 @@ h1 {
     color: #98BAD5 !important;
 }
 
-/* Secondary buttons (e.g. "Capture Hand Gesture") — solid black fill
-   with white text for maximum contrast against the light page. */
+/* Secondary buttons — solid dark fill with white text */
 .stButton > button[kind="secondary"] {
     background: #1A1A1A !important;
     color: #FFFFFF !important;
@@ -213,13 +213,42 @@ h1 {
     filter: brightness(0.95);
 }
 
-/* Explicit disabled state so it doesn't fall back to Streamlit's
-   default washed-out gray-on-gray look */
 .stButton > button[kind="secondary"]:disabled {
     background: #D8E1E8 !important;
     border: 1px solid #B2CBDE !important;
     color: #7C93B3 !important;
     box-shadow: none !important;
+}
+
+/* Streamlit Camera Shutter Button Label Customization */
+div[data-testid="stCameraInput"] button {
+    font-size: 0 !important;
+    background: linear-gradient(135deg, #D98E2E 0%, #C87D1E 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #C87D1E !important;
+    border-radius: 9px !important;
+    box-shadow: 0 3px 12px -2px rgba(217, 142, 46, 0.5) !important;
+    padding: 8px 16px !important;
+    transition: transform 0.14s ease-out, box-shadow 0.14s ease-out, filter 0.14s ease-out !important;
+}
+
+div[data-testid="stCameraInput"] button::after {
+    content: "📸 CAPTURE HAND GESTURE";
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+div[data-testid="stCameraInput"] button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -3px rgba(217, 142, 46, 0.6) !important;
+    filter: brightness(1.04);
+}
+
+div[data-testid="stCameraInput"] button:active {
+    transform: translateY(0px);
+    filter: brightness(0.97);
 }
 
 /* Form Dropdowns & Sliders */
@@ -276,16 +305,6 @@ div[data-baseweb="slider"] [role="slider"] {
    CAMERA VIEWFINDER
    ============================================================ */
 
-/*
- * Live Camera Feed Centering
- * ---------------------------------------------------------------
- * The countdown banner and camera feed live inside an actual
- * st.container(key="viewfinder_stage") in app.py, which Streamlit
- * gives the class "st-key-viewfinder_stage". Scoping to that real
- * container (rather than a raw HTML div that Streamlit never
- * actually nests content inside) is what makes this reliably
- * center and fill the frame regardless of Streamlit version.
- */
 .st-key-viewfinder_stage {
     position: relative !important;
     width: 100% !important;
