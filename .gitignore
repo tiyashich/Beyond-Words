@@ -6,15 +6,7 @@ venv/
 env/
 .env
 
-# Model weights & heavy data
-*.h5
-*.keras
-*.hdf5
-*.onnx
-*.pt
-*.pth
-*.tflite
-*.pb
+# Heavy raw datasets (keep weights unignored)
 data/
 datasets/
 
